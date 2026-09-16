@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# ---------------------------------------------------------------------------
+# google-chrome / chromium shim for Windows (Git Bash / MSYS2)
+#
+# Why this exists
+#   scientific-fa-translation-skill's scripts/build-pdf.sh finds a browser via
+#   find_chrome(), which searches PATH for "chromium chromium-browser
+#   google-chrome google-chrome-stable". None of those names exist on Windows,
+#   so the HTML engine is never found.
+#
+#   Worse, the scripts pass "file://$(realpath doc.html)" — an MSYS path, i.e.
+#   file:///c/Users/x or file:///tmp/x. Chromium and MS Edge cannot resolve
+#   either form: they render ERR_FILE_NOT_FOUND and happily print *that* error
+#   page as the PDF, which looks like a successful build.
+#
+# What it does
+#   1. Locates MS Edge (or Chrome).
+#   2. Converts every file:// argument to a real Windows file URL
+#      (file:///C:/Users/x, spaces as %20) using cygpath.
+#   3. Execs the browser with all other flags unchanged.
+#
+# Install: place at %USERPROFILE%\bin\google-chrome and put %USERPROFILE%\bin
+#          on PATH, then restart the shell/app so find_chrome() sees it.
+# ---------------------------------------------------------------------------
+set -uo pipefail
+
+browser=""
+for pf in "$(printenv 'ProgramFiles(x86)')" "$(printenv 'ProgramW6432')" "$(printenv 'ProgramFiles')"; do
+  [[ -n $pf ]] || continue
+  for rel in "Microsoft/Edge/Application/msedge.exe" \
+             "Google/Chrome/Application/chrome.exe"; do
+    cand="$(cygpath -u "$pf" 2>/dev/null)/$rel"
+    if [[ -x $cand ]]; then browser=$cand; break 2; fi
+  done
+done
+
+if [[ -z $browser ]]; then
+  for cand in "/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe" \
+              "/c/Program Files/Microsoft/Edge/Application/msedge.exe" \
+              "/c/Program Files/Google/Chrome/Application/chrome.exe" \
+              "/c/Program Files (x86)/Google/Chrome/Application/chrome.exe"; do
+    if [[ -x $cand ]]; then browser=$cand; break; fi
+  done
+fi
+
+if [[ -z $browser ]]; then
+  echo "google-chrome (Windows shim): no MS Edge or Chrome installation found" >&2
+  exit 127
+fi
+
+to_windows_url() {
+  local url=$1 path win
+  case "$url" in
+    file://*) ;;
+    *) printf '%s' "$url"; return 0 ;;
+  esac
+  path=${url#file://}
+  case "$path" in
+    /[a-zA-Z]:/*) win=${path#/} ;;          # file:///C:/Users -> C:/Users
+    *) win=$(cygpath -w "$path" 2>/dev/null) || win="" ;;
+  esac
+  if [[ -z $win ]]; then printf '%s' "$url"; return 0; fi
+  win=${win//\\//}
+  win=${win// /%20}
+  printf 'file:///%s' "$win"
+}
+
+args=()
+for a in "$@"; do
+  args+=("$(to_windows_url "$a")")
+done
+
+exec "$browser" "${args[@]}"

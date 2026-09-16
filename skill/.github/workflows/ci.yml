@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Lint shell scripts
+        run: shellcheck -S warning $(git ls-files '*.sh')
+
+      - name: Byte-compile python
+        run: python3 -m py_compile $(git ls-files '*.py')
+
+      - name: Checker regression tests
+        run: bash tests/run.sh
+
+      - name: Skill is cloneable into /home/$USER/.cursor/skills
+        run: |
+          set -e
+          test -f SKILL.md
+          grep -q '^name: scientific-fa-translation-skill$' SKILL.md
+          if [ -f scientific-fa-translation/SKILL.md ]; then
+            echo "nested scientific-fa-translation/SKILL.md would be invisible"
+            echo "after: cd /home/\$USER/.cursor/skills && git clone <this-repo>"
+            exit 1
+          fi
+          missing=0
+          for ref in $(grep -oE '(references|scripts|assets)/[A-Za-z0-9._-]+' \
+                       SKILL.md | sort -u); do
+            if [ ! -e "$ref" ]; then
+              echo "SKILL.md references a missing path: $ref"
+              missing=1
+            fi
+          done
+          exit $missing

@@ -1,0 +1,20 @@
+# ساخته‌شده توسط install-windows.ps1 — توسط ~/.bashrc و توسط $BASH_ENV خوانده می‌شود.
+#
+# تنها کار مهم: ترجیح poppler واقعی بر pdftotext.exe قدیمی و سرگردان در
+#   C:\Program Files\Git\mingw64\bin
+# آن فایل هیچ متنی از PDFهای Chromium/Edge استخراج نمی‌کند (فونت CID جاسازی‌شده)
+# و بی‌سروصدا این‌ها را خراب می‌کند:
+#   - scripts/check-pdf-text-order.py  -> همیشه "inconclusive"
+#   - فایل کنارِ .txt از build-pdf.sh  -> بدون هیچ متن فارسی
+# چون /etc/profile مسیر /mingw64/bin را اول می‌گذارد، افزودن مسیر به PATH
+# ویندوز کافی نیست و باید همین‌جا prepend شود.
+for poppler_bin in "$HOME/scoop/apps/poppler/current/bin" \
+                   "$HOME/tools/poppler/bin" \
+                   "$HOME/tools/poppler/Library/bin"; do
+  [ -d "$poppler_bin" ] || continue
+  case ":$PATH:" in
+    *":$poppler_bin:"*) ;;
+    *) PATH="$poppler_bin:$PATH"; export PATH ;;
+  esac
+done
+unset poppler_bin
