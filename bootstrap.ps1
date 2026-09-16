@@ -1,34 +1,30 @@
-﻿#Requires -Version 5.1
-<#
-  bootstrap.ps1 — نصب یک‌دستوری scientific-fa-translation-skill روی Cline (ویندوز)
-
-  اجرا (بدون دانلود دستی):
-
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1 | iex"
-
-  با گزینه‌ها:
-
-    powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1))) -Cursor -SkipTests"
-
-  این اسکریپت فقط کیت را می‌آورد؛ کار اصلی را install-windows.ps1 انجام می‌دهد.
-    ۱. دریافت کیت: git clone --depth 1 ، و در صورت نبود git، دانلود zip از GitHub
-    ۲. اجرای install-windows.ps1 (۱۱ مرحله: مهارت، شیم‌ها، poppler، فونت، ...)
-    ۳. گزارش مسیر کیت و دستور استفاده
-
-  متغیرهای محیطی اختیاری (برای تست/فورک):
-    SFA_REPO     پیش‌فرض KhtaAi/scientific-fa-translation-skill
-    SFA_BRANCH   پیش‌فرض main
-    SFA_KIT_DIR  استفاده از یک کیت محلی به‌جای دانلود
-#>
-[CmdletBinding()]
-param(
-  [switch]$Cursor,        # همچنین در ~/.cursor/skills نصب کن
-  [switch]$SkipTests,     # تست‌های رگرسیون را اجرا نکن
-  [switch]$SkipPoppler    # poppler را نصب نکن
-)
+﻿# bootstrap.ps1 — نصب یک‌دستوری scientific-fa-translation-skill روی Cline (ویندوز)
+#
+# اجرا:
+#   powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1 | iex"
+#
+# گزینه‌ها (چون این اسکریپت با iex اجرا می‌شود، param() نمی‌تواند داشته باشد
+# و گزینه‌ها از متغیر محیطی خوانده می‌شوند):
+#   $env:SFA_CURSOR=1        همچنین در ~/.cursor/skills نصب کن
+#   $env:SFA_SKIP_TESTS=1    تست‌های رگرسیون را اجرا نکن
+#   $env:SFA_SKIP_POPPLER=1  poppler را نصب نکن
+#   $env:SFA_REPO=owner/repo فورک دیگر (پیش‌فرض KhtaAi/scientific-fa-translation-skill)
+#   $env:SFA_BRANCH=main     شاخهٔ دیگر
+#   $env:SFA_KIT_DIR=C:\path استفاده از یک کیت محلی به‌جای دانلود
+#
+# نمونه با گزینه:
+#   $env:SFA_CURSOR=1; $env:SFA_SKIP_TESTS=1; irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1 | iex
+#
+# این اسکریپت فقط کیت را می‌آورد؛ کار اصلی را install-windows.ps1 انجام می‌دهد.
 
 $ErrorActionPreference = 'Stop'
 try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
+
+function Test-True($v) { return ($v -eq '1' -or $v -eq 'true' -or $v -eq 'yes') }
+
+$Cursor      = Test-True $env:SFA_CURSOR
+$SkipTests   = Test-True $env:SFA_SKIP_TESTS
+$SkipPoppler = Test-True $env:SFA_SKIP_POPPLER
 
 $Repo   = if ($env:SFA_REPO)   { $env:SFA_REPO }   else { 'KhtaAi/scientific-fa-translation-skill' }
 $Branch = if ($env:SFA_BRANCH) { $env:SFA_BRANCH } else { 'main' }
@@ -38,6 +34,7 @@ $Installer = Join-Path $Work 'install-windows.ps1'
 Write-Host ''
 Write-Host 'scientific-fa-translation-skill — نصب با یک دستور' -ForegroundColor White
 Write-Host "   repo: $Repo  (branch: $Branch)"
+
 
 # --------------------------------------------------------------------------
 Write-Host "`n== دریافت کیت" -ForegroundColor Cyan

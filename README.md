@@ -15,11 +15,21 @@ PowerShell را باز کنید و این را بچسبانید:
 powershell -NoProfile -ExecutionPolicy Bypass -Command "irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1 | iex"
 ```
 
-با گزینه‌ها (نصب برای Cursor هم، بدون تست):
+با گزینه‌ها (چون با `iex` اجرا می‌شود، گزینه‌ها از متغیر محیطی خوانده می‌شوند):
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -Command "& ([scriptblock]::Create((irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1))) -Cursor -SkipTests"
+$env:SFA_CURSOR=1; $env:SFA_SKIP_TESTS=1
+irm https://raw.githubusercontent.com/KhtaAi/scientific-fa-translation-skill/main/bootstrap.ps1 | iex
 ```
+
+| متغیر | کار |
+| --- | --- |
+| `SFA_CURSOR=1` | نصب برای Cursor هم (`~/.cursor/skills`) |
+| `SFA_SKIP_TESTS=1` | اجرا نکردن تست‌های رگرسیون |
+| `SFA_SKIP_POPPLER=1` | نصب نکردن poppler |
+| `SFA_REPO=owner/repo` | استفاده از فورک دیگر |
+| `SFA_BRANCH=dev` | شاخهٔ دیگر |
+| `SFA_KIT_DIR=C:\path` | استفاده از کیت محلی به‌جای دانلود |
 
 **Git Bash** (اگر ترجیح می‌دهید):
 
