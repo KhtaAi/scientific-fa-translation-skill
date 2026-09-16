@@ -132,13 +132,17 @@ if (Test-Path (Join-Path $SkillSrc 'SKILL.md')) {
 } elseif (Test-Path (Join-Path $SkillPath 'SKILL.md')) {
   Note 'پوشهٔ skill در بسته نبود و مهارت از قبل نصب است -> git pull'
   if (Get-Command git -ErrorAction SilentlyContinue) {
-    & git -C $SkillPath pull --ff-only 2>&1 | ForEach-Object { Note $_ }
+    $prevEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    try { & git -C $SkillPath pull --ff-only 2>&1 | ForEach-Object { Note $_ } }
+    finally { $ErrorActionPreference = $prevEap }
   }
   Ok "به‌روزرسانی شد: $SkillPath"
 } else {
   Warn 'پوشهٔ skill در بسته نبود -> کلون از اینترنت'
   New-Item -ItemType Directory -Force -Path $SkillsDir | Out-Null
-  & git clone --depth 1 $RepoUrl $SkillPath 2>&1 | ForEach-Object { Note $_ }
+  $prevEap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+  try { & git clone --depth 1 $RepoUrl $SkillPath 2>&1 | ForEach-Object { Note $_ } }
+  finally { $ErrorActionPreference = $prevEap }
 }
 if (-not (Test-Path (Join-Path $SkillPath 'SKILL.md'))) { Fail 'SKILL.md پیدا نشد؛ نصب مهارت ناموفق بود.' }
 Ok 'SKILL.md موجود است'

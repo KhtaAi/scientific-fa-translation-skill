@@ -22,6 +22,19 @@ try { [Console]::OutputEncoding = [System.Text.Encoding]::UTF8 } catch { }
 
 function Test-True($v) { return ($v -eq '1' -or $v -eq 'true' -or $v -eq 'yes') }
 
+# اجرای یک برنامهٔ بیرونی بدون اینکه stderr آن (مثل پیشرفت git) اسکریپت را
+# بکشد. با $ErrorActionPreference='Stop' هر خط stderr پاورشل یک
+# NativeCommandError پایان‌دهنده می‌شود، پس موقتاً 'Continue' می‌کنیم.
+function Invoke-Native($file, [string[]]$nativeArgs) {
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try {
+    & $file @nativeArgs 2>&1 | ForEach-Object { Write-Host "   ...    $_" -ForegroundColor DarkGray }
+  } finally {
+    $ErrorActionPreference = $prev
+  }
+}
+
 $Cursor      = Test-True $env:SFA_CURSOR
 $SkipTests   = Test-True $env:SFA_SKIP_TESTS
 $SkipPoppler = Test-True $env:SFA_SKIP_POPPLER
@@ -44,15 +57,14 @@ if (Test-Path $Installer) {
   Write-Host '   ...    به‌روزرسانی با git pull'
   $gitCmd = Get-Command git -ErrorAction SilentlyContinue
   if ($gitCmd -and (Test-Path (Join-Path $Work '.git'))) {
-    & git -C $Work pull --ff-only 2>&1 | ForEach-Object { Write-Host "   ...    $_" -ForegroundColor DarkGray }
+    Invoke-Native 'git' @('-C', $Work, 'pull', '--ff-only')
   }
 } else {
   Remove-Item -Recurse -Force $Work -ErrorAction SilentlyContinue
   $gitCmd = Get-Command git -ErrorAction SilentlyContinue
   if ($gitCmd) {
     Write-Host '   ...    git clone --depth 1'
-    & git clone --depth 1 --branch $Branch "https://github.com/$Repo.git" $Work 2>&1 |
-      ForEach-Object { Write-Host "   ...    $_" -ForegroundColor DarkGray }
+    Invoke-Native 'git' @('clone', '--depth', '1', '--branch', $Branch, "https://github.com/$Repo.git", $Work)
   }
   if (-not (Test-Path $Installer)) {
     Write-Host '   ...    git نبود یا کلون نشد -> دانلود zip از GitHub'
